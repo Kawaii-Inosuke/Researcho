@@ -22,11 +22,25 @@ export const generatePaperPipeline = async (state) => {
     // Step 5: Final Editing & Polishing
     updatedState = await editingAgent(updatedState);
 
-    // Final output structure
+    // Build structured response for new UI
+    const sections = {
+        abstract: updatedState.abstract || "",
+        introduction: updatedState.introduction || "",
+        methodology: updatedState.methodology || "",
+        results: updatedState.results || "",
+        conclusion: updatedState.conclusion || ""
+    };
+
+    // Combine sections into formatted paper (fallback to finalPaper if available)
+    const formattedPaper = updatedState.finalPaper ||
+        `ABSTRACT\n\n${sections.abstract}\n\nI. INTRODUCTION\n\n${sections.introduction}\n\nII. METHODOLOGY\n\n${sections.methodology}\n\nIII. RESULTS\n\n${sections.results}\n\nIV. CONCLUSION\n\n${sections.conclusion}`;
+
+    // Return structured output for new UI
     return {
         topic: updatedState.topic,
         keywords: updatedState.keywords,
-        citations: updatedState.citations,
-        finalPaper: updatedState.finalPaper
+        sections,
+        formattedPaper,
+        citations: updatedState.citations || []
     };
 };

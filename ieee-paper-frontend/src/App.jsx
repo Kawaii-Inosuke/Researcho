@@ -1,163 +1,149 @@
-import { useState } from 'react';
-import axios from 'axios';
-import './App.css';
+import { useState } from 'react'
+import HomePage from './components/HomePage'
+
+import axios from 'axios'
+import Sidebar from './components/Sidebar'
+import GenerationProgress from './components/GenerationProgress'
+import PaperViewer from './components/PaperViewer'
+
+const STEPS = [
+    { id: 'draft', name: 'Draft', number: 1 },
+    { id: 'research', name: 'Research', number: 2 },
+    { id: 'citations', name: 'Citations', number: 3 },
+    { id: 'formatting', name: 'Formatting', number: 4 },
+    { id: 'final', name: 'Final Paper', number: 5 },
+];
 
 function App() {
-  const [topic, setTopic] = useState('');
-  const [keywords, setKeywords] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [paper, setPaper] = useState(null);
-  const [error, setError] = useState('');
+    const [view, setView] = useState('home') // 'home', 'generating', 'viewing'
+    const [currentStep, setCurrentStep] = useState(1)
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState(null)
+    const [paper, setPaper] = useState(null)
+    const [generationData, setGenerationData] = useState(null)
 
-  const handleGenerate = async (e) => {
-    e.preventDefault();
+    const handleStartGeneration = async (data) => {
+        setGenerationData(data)
+        setView('generating')
+        setCurrentStep(1)
+        setLoading(true)
+        setError(null)
+        setPaper(null)
 
-    if (!topic.trim() || !keywords.trim()) {
-      setError('Please fill in both topic and keywords');
-      return;
+        try {
+            // Simulate step progression (steps 1-4)
+            for (let step = 1; step <= 4; step++) {
+                setCurrentStep(step)
+                await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate work
+            }
+
+            // Step 5: Make actual API call
+            setCurrentStep(5)
+            const response = await axios.post('http://localhost:5000/api/paper/generate', data)
+            setPaper(response.data.paper)
+            // Stay in 'generating' view to show the paper in GenerationProgress
+        } catch (err) {
+            console.error('Generation error:', err)
+            setError(err.message || 'Failed to generate paper')
+            setView('home')
+        } finally {
+            setLoading(false)
+        }
     }
 
-    setLoading(true);
-    setError('');
-    setPaper(null);
-
-    try {
-      const response = await axios.post('http://localhost:5000/api/paper/generate', {
-        topic: topic.trim(),
-        keywords: keywords.trim()
-      });
-
-      if (response.data.success) {
-        setPaper(response.data.paper);
-      } else {
-        setError('Failed to generate paper');
-      }
-    } catch (err) {
-      setError(err.response?.data?.error || 'Failed to connect to server');
-      console.error('Error:', err);
-    } finally {
-      setLoading(false);
+    const handleRegenerate = () => {
+        if (generationData) {
+            handleStartGeneration(generationData)
+        }
     }
-  };
 
-  return (
-    <div className="app">
-      <div className="background-gradient"></div>
+    const handleSaveDraft = () => {
+        console.log('Saving draft...')
+        // TODO: Implement save draft
+    }
 
-      <div className="container">
-        <header className="header">
-          <h1 className="title">
-            <span className="title-icon">📄</span>
-            IEEE Paper Writer
-          </h1>
-          <p className="subtitle">AI-Powered Research Paper Generator</p>
-        </header>
+    const handleNextStep = () => {
+        if (currentStep < 5) {
+            setCurrentStep(currentStep + 1)
+        }
+    }
 
-        <div className="content">
-          {!paper ? (
-            <form className="input-form glass" onSubmit={handleGenerate}>
-              <div className="form-group">
-                <label htmlFor="topic">Research Topic</label>
-                <input
-                  id="topic"
-                  type="text"
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                  placeholder="e.g., AI in Healthcare"
-                  disabled={loading}
-                />
-              </div>
+    const handleViewFullPaper = () => {
+        setView('viewing')
+    }
 
-              <div className="form-group">
-                <label htmlFor="keywords">Keywords</label>
-                <input
-                  id="keywords"
-                  type="text"
-                  value={keywords}
-                  onChange={(e) => setKeywords(e.target.value)}
-                  placeholder="e.g., deep learning, medical imaging"
-                  disabled={loading}
-                />
-              </div>
+    const handleBackToHome = () => {
+        setView('home')
+        setCurrentStep(1)
+        setPaper(null)
+        setGenerationData(null)
+    }
 
-              {error && (
-                <div className="error-message">
-                  <span>⚠️</span> {error}
-                </div>
-              )}
+    const handleBackToEditor = () => {
+        setView('generating')
+        setCurrentStep(5)
+    }
 
-              <button
-                type="submit"
-                className="generate-btn"
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <span className="spinner"></span>
-                    Generating Paper...
-                  </>
-                ) : (
-                  <>
-                    <span>✨</span>
-                    Generate Paper
-                  </>
-                )}
-              </button>
-            </form>
-          ) : (
-            <div className="results">
-              <div className="paper-display glass">
-                <div className="paper-header">
-                  <h2>{paper.topic}</h2>
-                  <p className="keywords-display">
-                    <strong>Keywords:</strong> {paper.keywords}
-                  </p>
-                </div>
+    const handleSharePaper = () => {
+        console.log('Sharing paper...')
+        // TODO: Implement share functionality
+    }
 
-                <div className="paper-content">
-                  {paper.finalPaper && paper.finalPaper !== "No content generated" ? (
-                    <pre className="paper-text">{paper.finalPaper}</pre>
-                  ) : (
-                    <div className="no-content">
-                      <p>⚠️ Paper generation incomplete</p>
-                      <p className="hint">The backend may need API key configuration</p>
+
+
+    // Home view
+    if (view === 'home') {
+        return (
+            <>
+                {error && (
+                    <div className="fixed top-4 right-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg shadow-lg z-50">
+                        {error}
+                        <button onClick={() => setError(null)} className="ml-4 font-bold">×</button>
                     </div>
-                  )}
-                </div>
-
-                {paper.citations && paper.citations.length > 0 && (
-                  <div className="citations">
-                    <h3>References</h3>
-                    <ol>
-                      {paper.citations.map((citation, index) => (
-                        <li key={index}>{citation.replace(/^\[\d+\]\s*/, '')}</li>
-                      ))}
-                    </ol>
-                  </div>
                 )}
-              </div>
+                <HomePage onStartGeneration={handleStartGeneration} />
+            </>
+        )
+    }
 
-              <button
-                className="new-paper-btn"
-                onClick={() => {
-                  setPaper(null);
-                  setTopic('');
-                  setKeywords('');
-                }}
-              >
-                <span>➕</span>
-                Generate New Paper
-              </button>
-            </div>
-          )}
-        </div>
+    // Generation progress view
+    if (view === 'generating') {
+        const currentStepData = STEPS[currentStep - 1]
+        const progress = Math.round((currentStep / 5) * 100)
 
-        <footer className="footer">
-          <p>Powered by Gemini AI & Semantic Scholar</p>
-        </footer>
-      </div>
-    </div>
-  );
+        return (
+            <>
+                <Sidebar currentStep={currentStep} steps={STEPS} />
+                <GenerationProgress
+                    step={currentStepData}
+                    progress={progress}
+                    onRegenerate={handleRegenerate}
+                    onSaveDraft={handleSaveDraft}
+                    onNextStep={handleNextStep}
+                    onViewFullPaper={handleViewFullPaper}
+                    isLastStep={currentStep === 5}
+                    paper={paper}
+                    loading={loading}
+                />
+            </>
+        )
+    }
+
+    // Paper viewing
+    if (view === 'viewing' && paper) {
+        return (
+            <>
+                <Sidebar currentStep={5} steps={STEPS} />
+                <PaperViewer
+                    paper={paper}
+                    onBackToEditor={handleBackToEditor}
+                    onSharePaper={handleSharePaper}
+                />
+            </>
+        )
+    }
+
+    return null
 }
 
-export default App;
+export default App
